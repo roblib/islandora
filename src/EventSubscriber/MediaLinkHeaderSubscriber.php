@@ -72,7 +72,7 @@ class MediaLinkHeaderSubscriber extends LinkHeaderSubscriber implements EventSub
 
     if (empty($source_field) ||
       !$media->hasField($source_field) ||
-        !method_exists($media->get($source_field), 'referencedEntities')
+      !method_exists($media->get($source_field), 'referencedEntities')
     ) {
       return $links;
     }
