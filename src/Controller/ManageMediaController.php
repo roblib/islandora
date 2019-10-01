@@ -22,8 +22,7 @@ class ManageMediaController extends ManageMembersController {
    *   Array of media types to add.
    */
   public function addToNodePage(NodeInterface $node) {
-    $current_user = \Drupal::currentUser();
-    $roles = $current_user->getRoles();
+    $roles = $this->currentUser->getRoles();
     $list = $this->generateTypeList(
       'media',
       'media_type',
