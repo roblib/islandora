@@ -22,7 +22,9 @@ class ManageMediaController extends ManageMembersController {
    *   Array of media types to add.
    */
   public function addToNodePage(NodeInterface $node) {
-    return $this->generateTypeList(
+    $current_user = \Drupal::currentUser();
+    $roles = $current_user->getRoles();
+    $list = $this->generateTypeList(
       'media',
       'media_type',
       'entity.media.add_form',
@@ -30,6 +32,17 @@ class ManageMediaController extends ManageMembersController {
       $node,
       'field_media_of'
     );
+    if (!in_array('fedoraadmin', $roles)) {
+      $bundles = $list['#bundles'];
+      foreach ($bundles as $label => $bundle) {
+        $storage = $this->entityFieldManager->getFieldStorageDefinitions('media', $label);
+        $scheme = $storage['field_media_file']->getSetting('uri_scheme');
+        if ($scheme == 'fedora') {
+          unset($list['#bundles'][$label]);
+        }
+      }
+    }
+    return $list;
   }
 
   /**
