@@ -25,6 +25,7 @@ class ManageMediaController extends ManageMembersController {
     // The role fedoraAdmin is currently hardcoded and
     // must be in the user's profile for successful writes to Fedora.
     $roles = $this->currentUser->getRoles();
+    $checked_fields = ['file', 'image'];
     $list = $this->generateTypeList(
       'media',
       'media_type',
@@ -39,7 +40,7 @@ class ManageMediaController extends ManageMembersController {
         $fields = $this->entityFieldManager->getFieldDefinitions('media', $label);
         foreach ($fields as $field) {
           $file_type = $field->getType();
-          if ($file_type == 'file') {
+          if (in_array($file_type, $checked_fields)) {
             $scheme = $field->getSetting('uri_scheme');
             if ($scheme == 'fedora') {
               unset($list['#bundles'][$label]);
