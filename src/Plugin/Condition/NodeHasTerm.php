@@ -15,7 +15,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @Condition(
  *   id = "node_has_term",
- *   label = @Translation("Node has term"),
+ *   label = @Translation("Node has term with URI"),
  *   context = {
  *     "node" = @ContextDefinition("entity:node", required = TRUE , label = @Translation("node"))
  *   }
@@ -82,6 +82,16 @@ class NodeHasTerm extends ConditionPluginBase implements ContainerFactoryPluginI
   /**
    * {@inheritdoc}
    */
+  public function defaultConfiguration() {
+    return array_merge(
+      ['logic' => 'and'],
+      parent::defaultConfiguration()
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $default = [];
     if (isset($this->configuration['uri']) && !empty($this->configuration['uri'])) {
@@ -94,12 +104,24 @@ class NodeHasTerm extends ConditionPluginBase implements ContainerFactoryPluginI
     $form['term'] = [
       '#type' => 'entity_autocomplete',
       '#title' => $this->t('Term'),
+      '#description' => $this->t('Only terms that have external URIs/URLs will appear here.'),
       '#tags' => TRUE,
       '#default_value' => $default,
       '#target_type' => 'taxonomy_term',
       '#required' => TRUE,
+      '#selection_handler' => 'islandora:external_uri',
     ];
 
+    $form['logic'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Logic'),
+      '#description' => $this->t('Whether to use AND or OR logic to evaluate multiple terms'),
+      '#options' => [
+        'and' => 'And',
+        'or' => 'Or',
+      ],
+      '#default_value' => $this->configuration['logic'],
+    ];
     return parent::buildConfigurationForm($form, $form_state);
   }
 
@@ -124,6 +146,9 @@ class NodeHasTerm extends ConditionPluginBase implements ContainerFactoryPluginI
         $this->configuration['uri'] = implode(',', $uris);
       }
     }
+
+    $this->configuration['logic'] = $form_state->getValue('logic');
+
     parent::submitConfigurationForm($form, $form_state);
   }
 
@@ -153,22 +178,30 @@ class NodeHasTerm extends ConditionPluginBase implements ContainerFactoryPluginI
    */
   protected function evaluateEntity(EntityInterface $entity) {
     // Find the terms on the node.
-    $terms = array_filter($entity->referencedEntities(), function ($entity) {
-      return $entity->getEntityTypeId() == 'taxonomy_term' &&
-         $entity->hasField(IslandoraUtils::EXTERNAL_URI_FIELD) &&
-         !$entity->get(IslandoraUtils::EXTERNAL_URI_FIELD)->isEmpty();
+    $field_names = $this->utils->getUriFieldNamesForTerms();
+    $terms = array_filter($entity->referencedEntities(), function ($entity) use ($field_names) {
+      if ($entity->getEntityTypeId() != 'taxonomy_term') {
+        return FALSE;
+      }
+
+      foreach ($field_names as $field_name) {
+        if ($entity->hasField($field_name) && !$entity->get($field_name)->isEmpty()) {
+           return TRUE;
+        }
+      }
+      return FALSE;
     });
 
     // Get their URIs.
     $haystack = array_map(function ($term) {
-        return $term->get(IslandoraUtils::EXTERNAL_URI_FIELD)->first()->getValue()['uri'];
+        return $this->utils->getUriForTerm($term);
     },
       $terms
     );
 
     // FALSE if there's no URIs on the node.
     if (empty($haystack)) {
-      return $this->isNegated() ? TRUE : FALSE;
+      return FALSE;
     }
 
     // Get the URIs to look for.  It's a required field, so there
@@ -176,12 +209,19 @@ class NodeHasTerm extends ConditionPluginBase implements ContainerFactoryPluginI
     $needles = explode(',', $this->configuration['uri']);
 
     // TRUE if every needle is in the haystack.
-    if (count(array_intersect($needles, $haystack)) == count($needles)) {
-      return $this->isNegated() ? FALSE : TRUE;
+    if ($this->configuration['logic'] == 'and') {
+      if (count(array_intersect($needles, $haystack)) == count($needles)) {
+        return TRUE;
+      }
+      return FALSE;
     }
-
-    // Otherwise, FALSE.
-    return $this->isNegated() ? TRUE : FALSE;
+    // TRUE if any needle is in the haystack.
+    else {
+      if (count(array_intersect($needles, $haystack)) > 0) {
+        return TRUE;
+      }
+      return FALSE;
+    }
   }
 
   /**
