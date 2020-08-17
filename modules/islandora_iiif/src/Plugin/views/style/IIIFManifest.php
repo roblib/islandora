@@ -12,6 +12,7 @@ use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\File\FileSystem;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\ServerException;
 
 /**
@@ -190,28 +191,25 @@ class IIIFManifest extends StylePluginBase {
             $width = $resource['width'];
             $height = $resource['height'];
           }
-          catch (ClientException $e) {
-          }
-          catch (ServerException $e) {
-          }
+          catch (ClientException | ServerException | ConnectException $e) {
+            // If we couldn't get the info.json from IIIF
+            // try seeing if we can get it from Drupal.
+            if (empty($width) || empty($height)) {
+              // Get the image properties so we know the image width/height.
+              $properties = $image->getProperties();
+              $width = isset($properties['width']) ? $properties['width'] : 0;
+              $height = isset($properties['height']) ? $properties['height'] : 0;
 
-          // If we couldn't get the info.json from IIIF
-          // try seeing if we can get it from Drupal.
-          if (empty($width) || empty($height)) {
-            // Get the image properties so we know the image width/height.
-            $properties = $image->getProperties();
-            $width = isset($properties['width']) ? $properties['width'] : 0;
-            $height = isset($properties['height']) ? $properties['height'] : 0;
-
-            // If this is a TIFF AND we don't know the width/height
-            // see if we can get the image size via PHP's core function.
-            if ($mime_type === 'image/tiff' && !$width || !$height) {
-              $uri = $image->entity->getFileUri();
-              $path = $this->fileSystem->realpath($uri);
-              $image_size = getimagesize($path);
-              if ($image_size) {
-                $width = $image_size[0];
-                $height = $image_size[1];
+              // If this is a TIFF AND we don't know the width/height
+              // see if we can get the image size via PHP's core function.
+              if ($mime_type === 'image/tiff' && !$width || !$height) {
+                $uri = $image->entity->getFileUri();
+                $path = $this->fileSystem->realpath($uri);
+                $image_size = getimagesize($path);
+                if ($image_size) {
+                  $width = $image_size[0];
+                  $height = $image_size[1];
+                }
               }
             }
           }

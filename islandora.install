@@ -6,42 +6,6 @@
  */
 
 /**
- * Implements hook_schema().
- */
-function islandora_schema() {
-  $schema = [];
-  $schema['islandora_version_count'] = [
-    'description' => 'Keeps track of the number of changes to an entity',
-    'fields' => [
-      'id' => [
-        'description' => 'Autoincrementing id for record',
-        'type' => 'serial',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-      ],
-      'uuid' => [
-        'description' => 'UUID for an entity',
-        'type' => 'varchar',
-        'length' => 128,
-        'not null' => TRUE,
-        'unique' => TRUE,
-      ],
-      'count' => [
-        'description' => 'Number of times an entity has been updated.',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'default' => 0,
-      ],
-    ],
-    'primary key' => ['id'],
-    'unique keys' => [
-      'uuid' => ['uuid'],
-    ],
-  ];
-  return $schema;
-}
-
-/**
  * Delete the 'delete_media' action we used to provide, if it exists.
  *
  * Use the core 'media_delete_action' instead.
@@ -51,4 +15,43 @@ function islandora_update_8001(&$sandbox) {
   if ($action) {
     $action->delete();
   }
+}
+
+/**
+ * Replaces 'entity_bundle' conditions with 'islandora_entity_bundle'.
+ *
+ * This prevents plugin naming collisions between islandora and ctools.
+ */
+function islandora_update_8002(&$sandbox) {
+
+  // Find contexts that have the old 'entity_bundle' condition.
+  $results = \Drupal::entityQuery('context')->condition('conditions.entity_bundle.id', 'entity_bundle')->execute();
+
+  if (empty($results)) {
+    return;
+  }
+
+  // Set each context config to use 'islandora_entity_bundle' instead.
+  foreach ($results as $result) {
+    $config = \Drupal::configFactory()->getEditable("context.context.$result");
+    $condition = $config->get('conditions.entity_bundle');
+    $condition['id'] = 'islandora_entity_bundle';
+    $config->set('conditions.islandora_entity_bundle', $condition);
+    $config->clear('conditions.entity_bundle');
+    $config->save();
+  }
+
+  // Force drupal to reload the config.
+  \Drupal::service('plugin.manager.condition')->clearCachedDefinitions();
+}
+
+/**
+ * Deletes the islandora_version_count table.
+ *
+ * We never implemented the functionality.
+ */
+function islandora_update_8003(&$sandbox) {
+  \Drupal::service('database')
+    ->schema()
+    ->dropTable('islandora_version_count');
 }

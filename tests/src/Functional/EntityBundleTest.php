@@ -24,9 +24,9 @@ class EntityBundleTest extends IslandoraFunctionalTestBase {
     $this->drupalLogin($account);
 
     $this->createContext('Test', 'test');
-    $this->addCondition('test', 'entity_bundle');
-    $this->getSession()->getPage()->checkField("edit-conditions-entity-bundle-bundles-test-type");
-    $this->getSession()->getPage()->findById("edit-conditions-entity-bundle-context-mapping-node")->selectOption("@node.node_route_context:node");
+    $this->addCondition('test', 'islandora_entity_bundle');
+    $this->getSession()->getPage()->checkField("edit-conditions-islandora-entity-bundle-bundles-test-type");
+    $this->getSession()->getPage()->findById("edit-conditions-islandora-entity-bundle-context-mapping-node")->selectOption("@node.node_route_context:node");
     $this->getSession()->getPage()->pressButton(t('Save and continue'));
     $this->addPresetReaction('test', 'index', 'hello_world');
 

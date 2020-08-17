@@ -4,7 +4,7 @@ namespace Drupal\islandora\Plugin\Condition;
 
 use Drupal\Core\Condition\ConditionPluginBase;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityTypeManager;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\islandora\IslandoraUtils;
@@ -16,7 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @Condition(
  *   id = "node_had_namespace",
  *   label = @Translation("Node had 7.x namespace"),
- *   context = {
+ *   context_definitions = {
  *     "node" = @ContextDefinition("entity:node", required = TRUE , label = @Translation("node"))
  *   }
  * )
@@ -33,7 +33,7 @@ class NodeHadNamespace extends ConditionPluginBase implements ContainerFactoryPl
   /**
    * Term storage.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManager
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
   protected $entityTypeManager;
 
@@ -51,7 +51,7 @@ class NodeHadNamespace extends ConditionPluginBase implements ContainerFactoryPl
    *   The plugin implementation definition.
    * @param \Drupal\islandora\IslandoraUtils $utils
    *   Islandora utils.
-   * @param \Drupal\Core\Entity\EntityTypeManager $entity_type_manager
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   Entity type manager.
    */
   public function __construct(
@@ -59,7 +59,7 @@ class NodeHadNamespace extends ConditionPluginBase implements ContainerFactoryPl
     $plugin_id,
     $plugin_definition,
     IslandoraUtils $utils,
-    EntityTypeManager $entity_type_manager
+    EntityTypeManagerInterface $entity_type_manager
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->utils = $utils;
@@ -154,12 +154,12 @@ class NodeHadNamespace extends ConditionPluginBase implements ContainerFactoryPl
       foreach ($registered_namespaces as &$registered_namespace) {
         $registered_namespace = trim($registered_namespace);
         if (in_array($namespace, $registered_namespaces)) {
-          return $this->isNegated() ? FALSE : TRUE;
+          return TRUE;
         }
       }
     }
 
-    return $this->isNegated() ? TRUE : FALSE;
+    return FALSE;
   }
 
   /**
