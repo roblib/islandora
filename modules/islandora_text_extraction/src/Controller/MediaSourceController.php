@@ -43,11 +43,9 @@ class MediaSourceController extends ControllerBase {
   /**
    * MediaSourceController constructor.
    *
-   * @param \Drupal\Core\File\FileSystem
+   * @param \Drupal\Core\File\FileSystem $fileSystem
    *   Filesystem service.
    */
-
-
   public function __construct(FileSystem $fileSystem) {
     $this->fileSystem = $fileSystem;
   }
@@ -67,6 +65,24 @@ class MediaSourceController extends ControllerBase {
     );
   }
 
+  /**
+   * Attaches incoming file to existing media.
+   *
+   * @param \Drupal\media\Entity\Media $media
+   *   Media to hold file.
+   * @param string $destination_field
+   *   Media field to hold file.
+   * @param string $destination_text_field
+   *   Media field to hold extracted text.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   HTTP Request from Karaf.
+   *
+   * @return \Symfony\Component\HttpFoundation\Response
+   *   HTTP response.
+   *
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   * @throws \Drupal\Core\TypedData\Exception\ReadOnlyException
+   */
   public function attachToMedia(
     Media $media,
     string $destination_field,

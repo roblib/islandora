@@ -23,8 +23,6 @@ class MediaSourceHasMimetype extends ConditionPluginBase {
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
-
-
     $form['mimetype'] = [
       '#title' => $this->t('Source Media Mimetype'),
       '#type' => 'textfield',

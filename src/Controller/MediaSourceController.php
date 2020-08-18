@@ -241,7 +241,7 @@ class MediaSourceController extends ControllerBase {
         ]);
         $media->save();
       }
-      else{
+      else {
         $this->getLogger('islandora')->warning("Field $destination_field is not defined in  Media Type {$media->bundle()}");
       }
     }

@@ -313,8 +313,6 @@ function islandora_entity_view_mode_alter(&$view_mode, EntityInterface $entity) 
   }
 }
 
-
-
 /**
  * Implements hook_preprocess_node().
  */
