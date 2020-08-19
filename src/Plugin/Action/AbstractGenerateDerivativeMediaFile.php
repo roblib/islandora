@@ -145,7 +145,6 @@ class AbstractGenerateDerivativeMediaFile extends EmitEvent {
       'source_term_uri' => $uri,
       'mimetype' => '',
       'args' => '',
-      'scheme' => file_default_scheme(),
       'path' => '[date:custom:Y]-[date:custom:m]/[media:mid].bin',
       'source_field_name' => 'field_media_file',
       'destination_field_name' => '',
@@ -177,8 +176,11 @@ class AbstractGenerateDerivativeMediaFile extends EmitEvent {
     $token_data = [
       'media' => $entity,
     ];
+    $destination_field = $this->configuration['destination_field_name'];
+    $field = \Drupal::entityTypeManager()->getStorage('field_storage_config')->load("media.$destination_field");
+    $scheme = $field->getSetting('uri_scheme');
     $path = $this->token->replace($data['path'], $token_data);
-    $data['file_upload_uri'] = $data['scheme'] . '://' . $path;
+    $data['file_upload_uri'] = $scheme . '://' . $path;
     $allowed = ['queue',
       'event',
       'args',
@@ -199,8 +201,6 @@ class AbstractGenerateDerivativeMediaFile extends EmitEvent {
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
-    $schemes = $this->utils->getFilesystemSchemes();
-    $scheme_options = array_combine($schemes, $schemes);
     $form = parent::buildConfigurationForm($form, $form_state);
     $map = $this->entityFieldManager->getFieldMapByFieldType('file');
     $file_fields = $map['media'];
@@ -231,13 +231,7 @@ class AbstractGenerateDerivativeMediaFile extends EmitEvent {
       '#rows' => '8',
       '#description' => t('Additional command line arguments'),
     ];
-    $form['scheme'] = [
-      '#type' => 'select',
-      '#title' => t('File system'),
-      '#options' => $scheme_options,
-      '#default_value' => $this->configuration['scheme'],
-      '#required' => TRUE,
-    ];
+
     $form['path'] = [
       '#type' => 'textfield',
       '#title' => t('File path'),
