@@ -2,13 +2,10 @@
 
 namespace Drupal\islandora\Plugin\Action;
 
-use Drupal\Core\Action\ActionBase;
-use Drupal\Core\Database\Connection;
-use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Action\Plugin\Action\DeleteAction;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\islandora\MediaSource\MediaSourceService;
-use Psr\Log\LoggerInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\TempStore\PrivateTempStoreFactory;
 
 /**
  * Deletes a media and its source file.
@@ -16,105 +13,35 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @Action(
  *   id = "delete_media_and_file",
  *   label = @Translation("Delete media and file"),
- *   type = "media"
+ *   type = "media",
+ *   confirm_form_route_name = "islandora.confirm_delete_media_and_file"
  * )
  */
-class DeleteMediaAndFile extends ActionBase implements ContainerFactoryPluginInterface {
+class DeleteMediaAndFile extends DeleteAction {
 
   /**
-   * Media source service.
-   *
-   * @var \Drupal\islandora\MediaSource\MediaSourceService
+   * {@inheritdoc}
    */
-  protected $mediaSourceService;
-
-  /**
-   * Database connection.
-   *
-   * @var \Drupal\Core\Database\Connection
-   */
-  protected $connection;
-
-  /**
-   * Logger.
-   *
-   * @var Psr\Log\LoggerInterface
-   */
-  protected $logger;
-
-  /**
-   * Constructor.
-   *
-   * @param array $configuration
-   *   A configuration array containing information about the plugin instance.
-   * @param string $plugin_id
-   *   The plugin ID for the plugin instance.
-   * @param mixed $plugin_definition
-   *   The plugin implementation definition.
-   * @param \Drupal\islandora\MediaSource\MediaSourceService $media_source_service
-   *   Media source service.
-   * @param \Drupal\Core\Database\Connection $connection
-   *   Database connection.
-   * @param Psr\Log\LoggerInterface $logger
-   *   Logger.
-   */
-  public function __construct(
-    array $configuration,
-    $plugin_id,
-    $plugin_definition,
-    MediaSourceService $media_source_service,
-    Connection $connection,
-    LoggerInterface $logger
-  ) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->mediaSourceService = $media_source_service;
-    $this->connection = $connection;
-    $this->logger = $logger;
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, PrivateTempStoreFactory $temp_store_factory, AccountInterface $current_user) {
+    $this->currentUser = $current_user;
+    $this->tempStore = $temp_store_factory->get('media_and_file_delete_confirm');
+    $this->entityTypeManager = $entity_type_manager;
+    $this->configuration = $configuration;
+    $this->pluginId = $plugin_id;
+    $this->pluginDefinition = $plugin_definition;
   }
 
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new static(
-      $configuration,
-      $plugin_id,
-      $plugin_definition,
-      $container->get('islandora.media_source_service'),
-      $container->get('database'),
-      $container->get('logger.channel.islandora')
-    );
-  }
+  public function executeMultiple(array $entities) {
 
-  /**
-   * {@inheritdoc}
-   */
-  public function execute($entity = NULL) {
-    if (!$entity) {
-      return;
+    $selection = [];
+    foreach ($entities as $entity) {
+      $langcode = $entity->language()->getId();
+      $selection[$entity->id()][$langcode] = $langcode;
     }
-
-    $transaction = $this->connection->startTransaction();
-
-    try {
-      // Delete all the source files and then the media.
-      $source_field = $this->mediaSourceService->getSourceFieldName($entity->bundle());
-      foreach ($entity->get($source_field)->referencedEntities() as $file) {
-        $file->delete();
-      }
-      $entity->delete();
-    }
-    catch (\Exception $e) {
-      $transaction->rollBack();
-      $this->logger->error("Cannot delete media and its files. Rolling back transaction: @msg", ["@msg" => $e->getMessage()]);
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function access($object, AccountInterface $account = NULL, $return_as_object = FALSE) {
-    return $object->access('delete', $account, $return_as_object);
+    $this->tempStore->set("{$this->currentUser->id()}:media", $selection);
   }
 
 }

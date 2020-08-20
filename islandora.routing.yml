@@ -71,3 +71,12 @@ islandora.attach_file_to_media:
     parameters:
       media:
         type: entity:media
+
+islandora.confirm_delete_media_and_file:
+  path: '/media/delete_with_files'
+  defaults:
+    _form: 'Drupal\islandora\Form\ConfirmDeleteMediaAndFile'
+  requirements:
+    _permission: 'administer media+delete any media'
+
+
