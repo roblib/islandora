@@ -8,9 +8,9 @@ use Drupal\Core\Entity\EntityTypeManager;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
-use Drupal\islandora\IslandoraUtils;
 use Drupal\islandora\EventGenerator\EmitEvent;
 use Drupal\islandora\EventGenerator\EventGeneratorInterface;
+use Drupal\islandora\IslandoraUtils;
 use Drupal\islandora\MediaSource\MediaSourceService;
 use Drupal\jwt\Authentication\Provider\JwtAuth;
 use Drupal\token\Token;
@@ -177,11 +177,14 @@ class AbstractGenerateDerivativeMediaFile extends EmitEvent {
       'media' => $entity,
     ];
     $destination_field = $this->configuration['destination_field_name'];
-    $field = \Drupal::entityTypeManager()->getStorage('field_storage_config')->load("media.$destination_field");
+    $field = \Drupal::entityTypeManager()
+      ->getStorage('field_storage_config')
+      ->load("media.$destination_field");
     $scheme = $field->getSetting('uri_scheme');
     $path = $this->token->replace($data['path'], $token_data);
     $data['file_upload_uri'] = $scheme . '://' . $path;
-    $allowed = ['queue',
+    $allowed = [
+      'queue',
       'event',
       'args',
       'source_uri',
@@ -216,6 +219,15 @@ class AbstractGenerateDerivativeMediaFile extends EmitEvent {
       '#default_value' => $this->configuration['destination_field_name'],
       '#description' => $this->t('File field on Media Type to hold derivative.  Cannot be the same as source'),
     ];
+
+    $form['args'] = [
+      '#type' => 'textfield',
+      '#title' => t('Additional arguments'),
+      '#default_value' => $this->configuration['args'],
+      '#rows' => '8',
+      '#description' => t('Additional command line arguments'),
+    ];
+
     $form['mimetype'] = [
       '#type' => 'textfield',
       '#title' => t('Mimetype'),
@@ -223,13 +235,6 @@ class AbstractGenerateDerivativeMediaFile extends EmitEvent {
       '#required' => TRUE,
       '#rows' => '8',
       '#description' => t('Mimetype to convert to (e.g. image/jpeg, video/mp4, etc...)'),
-    ];
-    $form['args'] = [
-      '#type' => 'textfield',
-      '#title' => t('Additional arguments'),
-      '#default_value' => $this->configuration['args'],
-      '#rows' => '8',
-      '#description' => t('Additional command line arguments'),
     ];
 
     $form['path'] = [
@@ -254,17 +259,16 @@ class AbstractGenerateDerivativeMediaFile extends EmitEvent {
    */
   public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
     parent::validateConfigurationForm($form, $form_state);
-
-    $exploded_mime = explode('/', $form_state->getValue('mimetype'));
-
-    if (count($exploded_mime) != 2) {
+    $mimetype = $form_state->getValue('mimetype');
+    $exploded = explode('/', $form_state->getValue($mimetype));
+    if (count($exploded) != 2) {
       $form_state->setErrorByName(
         'mimetype',
         t('Please enter a mimetype (e.g. image/jpeg, video/mp4, audio/mp3, etc...)')
       );
     }
 
-    if (empty($exploded_mime[1])) {
+    if (empty($exploded[1])) {
       $form_state->setErrorByName(
         'mimetype',
         t('Please enter a mimetype (e.g. image/jpeg, video/mp4, audio/mp3, etc...)')

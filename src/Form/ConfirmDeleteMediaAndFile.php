@@ -2,6 +2,7 @@
 
 namespace Drupal\islandora\Form;
 
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Form\DeleteMultipleForm;
 use Drupal\Core\Form\FormStateInterface;
@@ -9,6 +10,7 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Url;
+use Drupal\file\Entity\File;
 use Drupal\islandora\MediaSource\MediaSourceService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -40,11 +42,19 @@ class ConfirmDeleteMediaAndFile extends DeleteMultipleForm {
   protected $selection = [];
 
   /**
+   * Entity field manager.
+   *
+   * @var \Drupal\Core\Entity\EntityFieldManagerInterface
+   */
+  protected $entityFieldManager;
+
+  /**
    * {@inheritdoc}
    */
-  public function __construct(AccountInterface $current_user, EntityTypeManagerInterface $entity_type_manager, PrivateTempStoreFactory $temp_store_factory, MessengerInterface $messenger, MediaSourceService $media_source_service, LoggerInterface $logger) {
+  public function __construct(AccountInterface $current_user, EntityTypeManagerInterface $entity_type_manager, EntityFieldManagerInterface $entity_field_manager, PrivateTempStoreFactory $temp_store_factory, MessengerInterface $messenger, MediaSourceService $media_source_service, LoggerInterface $logger) {
     $this->currentUser = $current_user;
     $this->entityTypeManager = $entity_type_manager;
+    $this->entityFieldManager = $entity_field_manager;
     $this->tempStore = $temp_store_factory->get('media_and_file_delete_confirm');
     $this->messenger = $messenger;
     $this->mediaSourceService = $media_source_service;
@@ -58,6 +68,7 @@ class ConfirmDeleteMediaAndFile extends DeleteMultipleForm {
     return new static(
       $container->get('current_user'),
       $container->get('entity_type.manager'),
+      $container->get('entity_field.manager'),
       $container->get('tempstore.private'),
       $container->get('messenger'),
       $container->get('islandora.media_source_service'),
@@ -115,15 +126,24 @@ class ConfirmDeleteMediaAndFile extends DeleteMultipleForm {
         continue;
       }
       // Check for files.
-      $source_field = $this->mediaSourceService->getSourceFieldName($entity->bundle());
-      foreach ($entity->get($source_field)->referencedEntities() as $file) {
-        if (!$file->access('delete', $this->currentUser)) {
-          $inaccessible_entities[] = $file;
-          continue;
+      $fields = $this->entityFieldManager->getFieldDefinitions('media', $entity->bundle());
+      $files = [];
+      foreach ($fields as $field) {
+        $type = $field->getType();
+        if ($type == 'file' || $type == 'image') {
+          $target_id = $entity->get($field->getName())->target_id;
+          $file = File::load($target_id);
+          if ($file) {
+            if (!$file->access('delete', $this->currentUser)) {
+              $inaccessible_entities[] = $file;
+              continue;
+            }
+            $delete_files[$file->id()] = $file;
+            $total_count++;
+          }
         }
-        $delete_files[$file->id()] = $file;
-        $total_count++;
       }
+
       foreach ($selected_langcodes as $langcode) {
         // We're only working with media, which are translatable.
         $entity = $entity->getTranslation($langcode);
