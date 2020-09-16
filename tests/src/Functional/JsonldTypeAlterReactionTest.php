@@ -65,7 +65,7 @@ class JsonldTypeAlterReactionTest extends JsonldSelfReferenceReactionTest {
 
     $this->drupalGet("admin/structure/context/$context_name");
     $this->getSession()->getPage()
-      ->fillField("Source Field", "field_type_predicate");
+      ->fillField("Field containing RDF type information", "field_type_predicate");
     $this->getSession()->getPage()->pressButton("Save and continue");
     $this->assertSession()
       ->pageTextContains("The context $context_name has been saved");

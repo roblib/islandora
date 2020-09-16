@@ -86,6 +86,10 @@ class FedoraAdapterTest extends IslandoraKernelTestBase {
 
     $prophecy = $this->prophesize(Response::class);
     $prophecy->getStatusCode()->willReturn(201);
+    $fedora_prophecy->createVersion('', Argument::any(), NULL,
+    Argument::any())->willReturn($prophecy->reveal());
+    $prophecy = $this->prophesize(Response::class);
+    $prophecy->getStatusCode()->willReturn(201);
 
     $fedora_prophecy->saveResource('', '', Argument::any())->willReturn($prophecy->reveal());
 
@@ -111,6 +115,9 @@ class FedoraAdapterTest extends IslandoraKernelTestBase {
    */
   protected function createAdapterForWriteFail() {
     $fedora_prophecy = $this->prophesize(IFedoraApi::class);
+    $prophecy = $this->prophesize(Response::class);
+    $prophecy->getStatusCode()->willReturn(500);
+    $fedora_prophecy->getResourceHeaders('')->willReturn($prophecy->reveal());
 
     $prophecy = $this->prophesize(Response::class);
     $prophecy->getStatusCode()->willReturn(500);
@@ -561,6 +568,14 @@ class FedoraAdapterTest extends IslandoraKernelTestBase {
     $prophecy = $this->prophesize(Response::class);
     $prophecy->getStatusCode()->willReturn(201);
     $response = $prophecy->reveal();
+
+    $date = new \DateTime();
+    $timestamp = $date->format("D, d M Y H:i:s O");
+    $fedora_prophecy->createVersion('',
+      Argument::any(), NULL,
+    Argument::any())->willReturn($prophecy->reveal());
+    $prophecy = $this->prophesize(Response::class);
+    $prophecy->getStatusCode()->willReturn(201);
 
     $fedora_prophecy->saveResource(Argument::any(), Argument::any(), Argument::any())->willReturn($response);
 

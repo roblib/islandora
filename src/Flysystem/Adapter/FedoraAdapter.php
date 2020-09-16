@@ -11,6 +11,7 @@ use GuzzleHttp\Psr7;
 use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\Psr7\StreamWrapper;
 use Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface;
+use DateTime;
 
 /**
  * Fedora adapter for Flysystem.
@@ -252,6 +253,32 @@ class FedoraAdapter implements AdapterInterface {
     $headers = [
       'Content-Type' => $this->mimeTypeGuesser->guess($path),
     ];
+    if ($this->has($path)) {
+      $fedora_url = $path;
+      $date = new DateTime();
+      $timestamp = $date->format("D, d M Y H:i:s O");
+      // Create version in Fedora.
+      try {
+        $response = $this->fedora->createVersion(
+          $fedora_url,
+          $timestamp,
+          NULL,
+          $headers
+        );
+        if (isset($response) && $response->getStatusCode() == 201) {
+          \Drupal::logger('fedora_flysystem')->info('Created a version in Fedora for ' . $fedora_url);
+        }
+        else {
+          \Drupal::logger('fedora_flysystem')->error(
+            "Client error: `Failed to create a Fedora version of $fedora_url`. Response is " . print_r($response, TRUE)
+          );
+
+        }
+      }
+      catch (\Exception $e) {
+        \Drupal::logger('fedora_flysystem')->error('Caught exception when creating version: ' . $e->getMessage() . "\n");
+      }
+    }
 
     $response = $this->fedora->saveResource(
         $path,

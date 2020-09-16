@@ -89,9 +89,13 @@ class JsonldTypeAlterReaction extends NormalizerAlterReaction {
     $config = $this->getConfiguration();
     $form['source_field'] = [
       '#type' => 'select',
-      '#title' => $this->t('Source Field'),
+      '#title' => $this->t('Field containing RDF type information'),
       '#options' => $options,
-      '#description' => $this->t("Select the field containing the type predicates."),
+      '#description' => $this->t("Use a field to determine the rdf:type. <br/><br/>
+      In JSON-LD representations, the @type attribute (shorthand for rdf:type) will
+      be populated from the value of this field, rather than the default for the bundle
+      as configured in the bundle's RDF mapping. If this field is an entity reference
+      field, the value of the referenced entity's `field_external_uri` will be used."),
       '#default_value' => isset($config['source_field']) ? $config['source_field'] : '',
     ];
     return $form;

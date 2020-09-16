@@ -114,6 +114,18 @@ class BreadcrumbsTest extends IslandoraFunctionalTestBase {
 
     // We should still escape it and have the same trail as before.
     $this->assertBreadcrumb($this->nodeD->toUrl()->toString(), $breadcrumbs);
+
+    // Delete 'A', removing it from the chain.
+    $this->nodeA->delete();
+
+    // The new breadcrumb chain without 'A'.
+    $breadcrumbs = [
+      Url::fromRoute('<front>')->toString() => 'Home',
+      $this->nodeB->toUrl()->toString() => $this->nodeB->label(),
+      $this->nodeC->toUrl()->toString() => $this->nodeC->label(),
+    ];
+
+    $this->assertBreadcrumb($this->nodeD->toUrl()->toString(), $breadcrumbs);
   }
 
 }

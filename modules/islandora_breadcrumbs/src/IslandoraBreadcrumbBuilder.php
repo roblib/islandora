@@ -54,7 +54,7 @@ class IslandoraBreadcrumbBuilder implements BreadcrumbBuilderInterface {
     $nid = $attributes->getRawParameters()->get('node');
     if (!empty($nid)) {
       $node = $this->nodeStorage->load($nid);
-      return (!empty($node) && $node->hasField($this->config->get('referenceField')) && !$node->get($this->config->get('referenceField'))->isEmpty());
+      return (!empty($node) && $node->hasField($this->config->get('referenceField')));
     }
   }
 
