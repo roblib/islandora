@@ -30,7 +30,7 @@
     "drupal/flysystem" : "^1.0",
     "islandora/crayfish-commons": "dev-dev",
     "drupal/hook_post_action" : "^1.0"
-    "drupal/file_replace": "^1.1",
+    "drupal/file_replace": "^1.1"
 
   },
   "require-dev": {
