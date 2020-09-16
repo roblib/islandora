@@ -260,7 +260,7 @@ class AbstractGenerateDerivativeMediaFile extends EmitEvent {
   public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
     parent::validateConfigurationForm($form, $form_state);
     $mimetype = $form_state->getValue('mimetype');
-    $exploded = explode('/', $form_state->getValue($mimetype));
+    $exploded = explode('/', $form_state->getValue('mimetype'));
     if (count($exploded) != 2) {
       $form_state->setErrorByName(
         'mimetype',
