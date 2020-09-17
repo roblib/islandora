@@ -29,7 +29,7 @@ class MediaSourceHasMimetype extends ConditionPluginBase {
       '#default_value' => $this->configuration['mimetype'],
     ];
 
-    return parent::buildConfigurationForm($form, $form_state);;
+    return parent::buildConfigurationForm($form, $form_state);
   }
 
   /**
